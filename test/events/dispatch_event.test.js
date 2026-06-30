@@ -1,6 +1,7 @@
 import sinon from "sinon"
 import { html, fixture, assert, oneEvent } from "@open-wc/testing"
 import { executeStream, registerAction } from "../test_helpers"
+import TurboPower from "../../"
 
 registerAction("dispatch_event")
 
@@ -259,6 +260,129 @@ describe("dispatch_event", () => {
       assert.deepEqual(event1.detail, expectedDetail)
       assert.deepEqual(event2.detail, expectedDetail)
       assert.deepEqual(event3.detail, expectedDetail)
+    })
+  })
+
+  context("config.dispatch_event.allowedEvents", () => {
+    afterEach(() => {
+      TurboPower.config.dispatch_event.allowedEvents = null
+      sinon.restore()
+    })
+
+    it("should dispatch event when name is in allowedEvents", async () => {
+      TurboPower.config.dispatch_event.allowedEvents = ["my:event"]
+
+      const element = await fixture('<div id="element"></div>')
+
+      setTimeout(() =>
+        executeStream('<turbo-stream action="dispatch_event" name="my:event" target="element"></turbo-stream>'),
+      )
+
+      const { detail } = await oneEvent(element, "my:event")
+
+      assert.deepEqual(detail, {})
+    })
+
+    it("should not dispatch event and print warning when name is not in allowedEvents", async () => {
+      TurboPower.config.dispatch_event.allowedEvents = ["my:event"]
+
+      const fake = sinon.replace(console, "warn", sinon.fake())
+
+      await fixture('<div id="element"></div>')
+
+      assert.equal(fake.callCount, 0)
+
+      await executeStream('<turbo-stream action="dispatch_event" name="other:event" target="element"></turbo-stream>')
+
+      assert.equal(fake.callCount, 1)
+      assert.equal(fake.firstArg, '[TurboPower] event "other:event" is not allowed for Turbo Streams operation "dispatch_event"')
+    })
+
+    it("should dispatch all events when allowedEvents is null", async () => {
+      TurboPower.config.dispatch_event.allowedEvents = null
+
+      const element = await fixture('<div id="element"></div>')
+
+      setTimeout(() =>
+        executeStream('<turbo-stream action="dispatch_event" name="any:event" target="element"></turbo-stream>'),
+      )
+
+      const { detail } = await oneEvent(element, "any:event")
+
+      assert.deepEqual(detail, {})
+    })
+  })
+
+  context("config.dispatch_event.prefix", () => {
+    afterEach(() => {
+      TurboPower.config.dispatch_event.prefix = null
+    })
+
+    it("should dispatch event with prefixed name", async () => {
+      TurboPower.config.dispatch_event.prefix = "app:"
+
+      const element = await fixture('<div id="element"></div>')
+
+      setTimeout(() =>
+        executeStream('<turbo-stream action="dispatch_event" name="my:event" target="element"></turbo-stream>'),
+      )
+
+      const { detail } = await oneEvent(element, "app:my:event")
+
+      assert.deepEqual(detail, {})
+    })
+
+    it("should dispatch event with unprefixed name when prefix is null", async () => {
+      TurboPower.config.dispatch_event.prefix = null
+
+      const element = await fixture('<div id="element"></div>')
+
+      setTimeout(() =>
+        executeStream('<turbo-stream action="dispatch_event" name="my:event" target="element"></turbo-stream>'),
+      )
+
+      const { detail } = await oneEvent(element, "my:event")
+
+      assert.deepEqual(detail, {})
+    })
+  })
+
+  context("config.dispatch_event.allowedEvents and prefix combined", () => {
+    afterEach(() => {
+      TurboPower.config.dispatch_event.allowedEvents = null
+      TurboPower.config.dispatch_event.prefix = null
+      sinon.restore()
+    })
+
+    it("should dispatch prefixed event when name is in allowedEvents", async () => {
+      TurboPower.config.dispatch_event.allowedEvents = ["my:event"]
+      TurboPower.config.dispatch_event.prefix = "app:"
+
+      const element = await fixture('<div id="element"></div>')
+
+      setTimeout(() =>
+        executeStream('<turbo-stream action="dispatch_event" name="my:event" target="element"></turbo-stream>'),
+      )
+
+      const { detail } = await oneEvent(element, "app:my:event")
+
+      assert.deepEqual(detail, {})
+    })
+
+    it("should block event and not apply prefix when name is not in allowedEvents", async () => {
+      TurboPower.config.dispatch_event.allowedEvents = ["my:event"]
+      TurboPower.config.dispatch_event.prefix = "app:"
+
+      const fake = sinon.replace(console, "warn", sinon.fake())
+
+      await fixture('<div id="element"></div>')
+
+      assert.equal(fake.callCount, 0)
+
+      await executeStream('<turbo-stream action="dispatch_event" name="other:event" target="element"></turbo-stream>')
+
+      assert.equal(fake.callCount, 1)
+      assert.equal(fake.firstArg, '[TurboPower] event "other:event" is not allowed for Turbo Streams operation "dispatch_event"')
     })
   })
 })

@@ -5,9 +5,13 @@ import { BrowserAdapter } from "@hotwired/turbo/dist/types/core/native/browser_a
 import * as TurboMorph from "turbo-morph"
 import * as Actions from "./actions"
 import * as Utils from "./utils"
+import config from "./config"
+import type { TurboPowerConfig } from "./config"
 
 export * as Actions from "./actions"
 export * as Utils from "./utils"
+export { config }
+export type { TurboPowerConfig }
 
 declare global {
   interface Window {
@@ -31,6 +35,7 @@ export function register(name: string, action: TurboStreamAction, streamActions:
 export default {
   initialize,
   register,
+  config,
   Actions,
   Utils,
 }

@@ -1,4 +1,5 @@
 import { StreamElement, TurboStreamActions } from "@hotwired/turbo"
+import config from "../config"
 
 export function dispatch_event(this: StreamElement) {
   const name = this.getAttribute("name")
@@ -14,8 +15,18 @@ export function dispatch_event(this: StreamElement) {
     const detail = template ? JSON.parse(template) : {}
 
     if (name) {
+      const { allowedEvents, prefix } = config.dispatch_event
+
+      if (allowedEvents !== null && !allowedEvents.includes(name)) {
+        console.warn(
+          `[TurboPower] event "${name}" is not allowed for Turbo Streams operation "dispatch_event"`,
+        )
+        return
+      }
+
+      const eventName = prefix ? `${prefix}${name}` : name
       const options = { bubbles: true, cancelable: true, detail }
-      const event = new CustomEvent(name, options)
+      const event = new CustomEvent(eventName, options)
 
       this.targetElements.forEach((element: Element) => element.dispatchEvent(event))
     } else {
